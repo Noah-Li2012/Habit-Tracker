@@ -284,27 +284,38 @@
     });
 
     function renderHabits() {
-      habitList.innerHTML = "";
-      habits.forEach((habit, index) => {
-        const div = document.createElement("div");
-        div.className = "habit" + (habit.completed ? " completed" : "");
-        div.style.border = `${habit.borderWidth}px ${habit.borderStyle} ${habit.borderColor}`;
-        div.innerHTML = `
-          <div class="habit-content">
-            <div>
-              <span>${habit.name}</span>
-              <div class="habit-timestamp">${habit.time}</div>
-              ${habit.description ? `<div class="habit-description">${habit.description}</div>` : ""}
-            </div>
-            <div class="habit-buttons">
-              <button onclick="toggleHabit(${index})">${habit.completed ? "Unmark" : "Complete"}</button>
-              <button onclick="openEditModal(${index})">Edit</button>
-            </div>
-          </div>
-        `;
-        habitList.appendChild(div);
-      });
+  habitList.innerHTML = "";
+  habits.forEach((habit, index) => {
+    const div = document.createElement("div");
+    div.className = "habit" + (habit.completed ? " completed" : "");
+    div.style.border = `${habit.borderWidth}px ${habit.borderStyle} ${habit.borderColor}`;
+
+    let descriptionContent = habit.description;
+
+    if (habit.description.startsWith("!img:")) {
+      const imageUrl = habit.description.substring(5).trim();
+      descriptionContent = `<img src="${imageUrl}" alt="Habit Image" style="max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px;" />`;
+    } else if (habit.description) {
+      descriptionContent = `<div class="habit-description">${habit.description}</div>`;
     }
+
+    div.innerHTML = `
+      <div class="habit-content">
+        <div>
+          <span>${habit.name}</span>
+          <div class="habit-timestamp">${habit.time}</div>
+          ${descriptionContent}
+        </div>
+        <div class="habit-buttons">
+          <button onclick="toggleHabit(${index})">${habit.completed ? "Unmark" : "Complete"}</button>
+          <button onclick="openEditModal(${index})">Edit</button>
+        </div>
+      </div>
+    `;
+    habitList.appendChild(div);
+  });
+}
+
 
     function toggleHabit(index) {
       habits[index].completed = !habits[index].completed;
