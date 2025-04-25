@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -19,14 +19,12 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      transition: all 0.5s ease-in-out;
     }
 
     h1 {
       margin-top: 30px;
       font-size: 2.5rem;
       text-shadow: 2px 2px #0003;
-      text-align: center;
     }
 
     #habit-container {
@@ -37,7 +35,6 @@
       background: rgba(255, 255, 255, 0.1);
       border-radius: 20px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-      transition: all 0.3s;
     }
 
     #add-form {
@@ -80,22 +77,19 @@
       border-radius: 15px;
       margin-bottom: 15px;
       overflow: hidden;
+      transition: all 0.5s ease;
+    }
+
+    .habit.completed {
+      background-color: #4caf50; /* Green color for completed habit */
+      color: white;
       transition: background-color 0.5s ease;
     }
 
-    .habit::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      height: 100%;
-      width: 0%;
-      background: rgba(0, 255, 100, 0.3);
-      transition: width 1s ease;
-      z-index: 0;
-    }
-
-    .habit.completed::before {
-      width: 100%;
+    .habit.completed .habit-content span,
+    .habit.completed .habit-timestamp,
+    .habit.completed .habit-description {
+      color: white; /* Make text white when completed */
     }
 
     .habit-content {
@@ -215,14 +209,23 @@
     .modal-actions button {
       flex: 1;
     }
+
+    .modal-box input[type="color"], .modal-box input[type="number"], .modal-box select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+
   </style>
 </head>
 <body>
   <h1>🌱 打卡器</h1>
   <div id="habit-container">
     <form id="add-form">
-      <input type="text" id="habit-input" placeholder="输入新的打卡项目" />
-      <button type="submit">添加打卡</button>
+      <input type="text" id="habit-input" placeholder="输入打卡项名称" />
+      <button type="submit">添加打卡项</button>
     </form>
     <div id="habit-list"></div>
     <div id="controls">
@@ -235,8 +238,15 @@
   <!-- Modal for editing -->
   <div class="modal" id="editModal">
     <div class="modal-box">
-      <h3>编辑描述</h3>
-      <textarea id="editDescription" rows="4"></textarea>
+      <h3>编辑打卡项</h3>
+      <textarea id="editDescription" rows="4" placeholder="输入要添加/更换的注释"></textarea>
+      <input type="color" id="borderColor" value="#000000">
+      <input type="number" id="borderWidth" value="2" min="1" max="10">
+      <select id="borderStyle">
+        <option value="solid">虚线</option>
+        <option value="dashed">实线</option>
+        <option value="dotted">点线</option>
+      </select>
       <div class="modal-actions">
         <button onclick="saveDescription()">保存</button>
         <button onclick="deleteHabit(currentEditIndex)" style="background:#f66;color:white;">删除</button>
@@ -253,6 +263,9 @@
 
     const editModal = document.getElementById("editModal");
     const editDescription = document.getElementById("editDescription");
+    const borderColor = document.getElementById("borderColor");
+    const borderWidth = document.getElementById("borderWidth");
+    const borderStyle = document.getElementById("borderStyle");
 
     let habits = [];
     let currentEditIndex = null;
@@ -263,7 +276,7 @@
       if (name !== "") {
         const timestamp = new Date();
         const formattedTime = `${timestamp.getFullYear()}/${String(timestamp.getMonth()+1).padStart(2, '0')}/${String(timestamp.getDate()).padStart(2, '0')} ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}`;
-        habits.push({ name, completed: false, description: "", time: formattedTime, borderColor: '#084f9c', borderWidth: '3px', borderStyle: 'solid' });
+        habits.push({ name, completed: false, description: "", time: formattedTime, borderColor: "#000000", borderWidth: 2, borderStyle: "solid" });
         habitInput.value = "";
         renderHabits();
         saveToStorage();
@@ -275,7 +288,7 @@
       habits.forEach((habit, index) => {
         const div = document.createElement("div");
         div.className = "habit" + (habit.completed ? " completed" : "");
-        div.style.border = `${habit.borderWidth} ${habit.borderStyle} ${habit.borderColor}`;
+        div.style.border = `${habit.borderWidth}px ${habit.borderStyle} ${habit.borderColor}`;
         div.innerHTML = `
           <div class="habit-content">
             <div>
@@ -284,7 +297,7 @@
               ${habit.description ? `<div class="habit-description">${habit.description}</div>` : ""}
             </div>
             <div class="habit-buttons">
-              <button onclick="toggleHabit(${index})">${habit.completed ? "取消完成" : "完成打卡"}</button>
+              <button onclick="toggleHabit(${index})">${habit.completed ? "取消打卡" : "完成打卡"}</button>
               <button onclick="openEditModal(${index})">编辑</button>
             </div>
           </div>
@@ -301,7 +314,11 @@
 
     function openEditModal(index) {
       currentEditIndex = index;
-      editDescription.value = habits[index].description || "";
+      const habit = habits[index];
+      editDescription.value = habit.description || "";
+      borderColor.value = habit.borderColor;
+      borderWidth.value = habit.borderWidth;
+      borderStyle.value = habit.borderStyle;
       editModal.classList.add("show");
     }
 
@@ -311,7 +328,11 @@
 
     function saveDescription() {
       if (currentEditIndex !== null) {
-        habits[currentEditIndex].description = editDescription.value.trim();
+        const habit = habits[currentEditIndex];
+        habit.description = editDescription.value.trim();
+        habit.borderColor = borderColor.value;
+        habit.borderWidth = parseInt(borderWidth.value);
+        habit.borderStyle = borderStyle.value;
         renderHabits();
         closeModal();
         saveToStorage();
@@ -327,40 +348,49 @@
 
     function saveHabits() {
       const timestamp = new Date();
-      const filename = `habitTracker_${timestamp.getFullYear()}${String(timestamp.getMonth()+1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}.htbynoah`;
-      const blob = new Blob([JSON.stringify(habits)], { type: "application/json" });
+      const dateStr = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}`;
+      const timeStr = `${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
+      const fileName = `habitTracker_${dateStr}_${timeStr}.htbynoah`;
+
+      const blob = new Blob([JSON.stringify(habits)], { type: "application/octet-stream" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = filename;
+      a.download = fileName;
       a.click();
     }
 
     function saveToStorage() {
-      localStorage.setItem("habitTracker", JSON.stringify(habits));
+      localStorage.setItem("habitTrackerData", JSON.stringify(habits));
     }
 
     function loadFromStorage() {
-      const savedHabits = localStorage.getItem("habitTracker");
-      if (savedHabits) {
-        habits = JSON.parse(savedHabits);
+      const data = localStorage.getItem("habitTrackerData");
+      if (data) {
+        habits = JSON.parse(data);
         renderHabits();
       }
     }
 
-    loadFromStorage();
-
-    // Handle file input
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          habits = JSON.parse(event.target.result);
-          renderHabits();
-        };
-        reader.readAsText(file);
-      }
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (Array.isArray(data)) {
+            habits = data;
+            renderHabits();
+            saveToStorage();
+          }
+        } catch (err) {
+          alert("错误文件类型或格式");
+        }
+      };
+      reader.readAsText(file);
     });
+
+    loadFromStorage();
   </script>
 </body>
 </html>
