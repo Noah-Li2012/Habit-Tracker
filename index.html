@@ -299,7 +299,7 @@
                                   <source src="${videoUrl}" type="video/mp4">
                                   Your browser does not support the video tag.
                                 </video>`;
-        } else if (habit.description.startsWith("!color ")) {
+        } else if (habit.description.startsWith("!color:")) {
           const text = habit.description.substring(7).trim();
           const colorName = text.split(" ")[0];
           const restText = text.substring(colorName.length).trim();
