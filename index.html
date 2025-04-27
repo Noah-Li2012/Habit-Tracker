@@ -274,7 +274,7 @@
       if (name !== "") {
         const timestamp = new Date();
         const formattedTime = `${timestamp.getFullYear()}/${String(timestamp.getMonth()+1).padStart(2, '0')}/${String(timestamp.getDate()).padStart(2, '0')} ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}`;
-        habits.push({ name, completed: false, description: "", time: formattedTime, borderColor: "#000000", borderWidth: 2, borderStyle: "solid" });
+        habits.push({ name, completed: false, description: "", time: formattedTime, borderColor: "#09abf1", borderWidth: 2, borderStyle: "solid" });
         habitInput.value = "";
         renderHabits();
         saveToStorage();
