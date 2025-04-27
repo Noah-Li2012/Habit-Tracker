@@ -13,7 +13,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(to bottom right, #a2d4f4, #084f9c);
+      background: linear-gradient(to bottom right, #0ce3ff, #000d67);
       color: #fff;
       min-height: 100vh;
       display: flex;
@@ -81,7 +81,7 @@
     }
 
     .habit.completed {
-      background-color: #4caf50; /* Green color for completed habit */
+      background-color: #4caf50;
       color: white;
       transition: background-color 0.5s ease;
     }
@@ -89,7 +89,7 @@
     .habit.completed .habit-content span,
     .habit.completed .habit-timestamp,
     .habit.completed .habit-description {
-      color: white; /* Make text white when completed */
+      color: white;
     }
 
     .habit-content {
@@ -155,7 +155,6 @@
       }
     }
 
-    /* Modal styles */
     .modal {
       position: fixed;
       top: 0;
@@ -235,7 +234,6 @@
     </div>
   </div>
 
-  <!-- Modal for editing -->
   <div class="modal" id="editModal">
     <div class="modal-box">
       <h3>Edit Habit</h3>
@@ -284,38 +282,48 @@
     });
 
     function renderHabits() {
-  habitList.innerHTML = "";
-  habits.forEach((habit, index) => {
-    const div = document.createElement("div");
-    div.className = "habit" + (habit.completed ? " completed" : "");
-    div.style.border = `${habit.borderWidth}px ${habit.borderStyle} ${habit.borderColor}`;
+      habitList.innerHTML = "";
+      habits.forEach((habit, index) => {
+        const div = document.createElement("div");
+        div.className = "habit" + (habit.completed ? " completed" : "");
+        div.style.border = `${habit.borderWidth}px ${habit.borderStyle} ${habit.borderColor}`;
 
-    let descriptionContent = habit.description;
+        let descriptionContent = "";
 
-    if (habit.description.startsWith("!img:")) {
-      const imageUrl = habit.description.substring(5).trim();
-      descriptionContent = `<img src="${imageUrl}" alt="Habit Image" style="max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px;" />`;
-    } else if (habit.description) {
-      descriptionContent = `<div class="habit-description">${habit.description}</div>`;
+        if (habit.description.startsWith("!img:")) {
+          const imageUrl = habit.description.substring(5).trim();
+          descriptionContent = `<img src="${imageUrl}" alt="Habit Image" style="max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px;" />`;
+        } else if (habit.description.startsWith("!vid:")) {
+          const videoUrl = habit.description.substring(5).trim();
+          descriptionContent = `<video controls style="max-width: 100%; border-radius: 10px; margin-top: 10px;">
+                                  <source src="${videoUrl}" type="video/mp4">
+                                  Your browser does not support the video tag.
+                                </video>`;
+        } else if (habit.description.startsWith("!color ")) {
+          const text = habit.description.substring(7).trim();
+          const colorName = text.split(" ")[0];
+          const restText = text.substring(colorName.length).trim();
+          descriptionContent = `<div class="habit-description" style="color: ${colorName};">${restText}</div>`;
+        } else if (habit.description) {
+          descriptionContent = `<div class="habit-description">${habit.description}</div>`;
+        }
+
+        div.innerHTML = `
+          <div class="habit-content">
+            <div>
+              <span>${habit.name}</span>
+              <div class="habit-timestamp">${habit.time}</div>
+              ${descriptionContent}
+            </div>
+            <div class="habit-buttons">
+              <button onclick="toggleHabit(${index})">${habit.completed ? "Unmark" : "Complete"}</button>
+              <button onclick="openEditModal(${index})">Edit</button>
+            </div>
+          </div>
+        `;
+        habitList.appendChild(div);
+      });
     }
-
-    div.innerHTML = `
-      <div class="habit-content">
-        <div>
-          <span>${habit.name}</span>
-          <div class="habit-timestamp">${habit.time}</div>
-          ${descriptionContent}
-        </div>
-        <div class="habit-buttons">
-          <button onclick="toggleHabit(${index})">${habit.completed ? "Unmark" : "Complete"}</button>
-          <button onclick="openEditModal(${index})">Edit</button>
-        </div>
-      </div>
-    `;
-    habitList.appendChild(div);
-  });
-}
-
 
     function toggleHabit(index) {
       habits[index].completed = !habits[index].completed;
@@ -335,73 +343,55 @@
 
     function closeModal() {
       editModal.classList.remove("show");
+      currentEditIndex = null;
     }
 
     function saveDescription() {
-      if (currentEditIndex !== null) {
-        const habit = habits[currentEditIndex];
-        habit.description = editDescription.value.trim();
-        habit.borderColor = borderColor.value;
-        habit.borderWidth = parseInt(borderWidth.value);
-        habit.borderStyle = borderStyle.value;
-        renderHabits();
-        closeModal();
-        saveToStorage();
-      }
+      habits[currentEditIndex].description = editDescription.value;
+      habits[currentEditIndex].borderColor = borderColor.value;
+      habits[currentEditIndex].borderWidth = parseInt(borderWidth.value);
+      habits[currentEditIndex].borderStyle = borderStyle.value;
+      renderHabits();
+      saveToStorage();
+      closeModal();
     }
 
     function deleteHabit(index) {
       habits.splice(index, 1);
       renderHabits();
-      closeModal();
       saveToStorage();
-    }
-
-    function saveHabits() {
-      const timestamp = new Date();
-      const dateStr = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}`;
-      const timeStr = `${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
-      const fileName = `habitTracker_${dateStr}_${timeStr}.htbynoah`;
-
-      const blob = new Blob([JSON.stringify(habits)], { type: "application/octet-stream" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName;
-      a.click();
+      closeModal();
     }
 
     function saveToStorage() {
-      localStorage.setItem("habitTrackerData", JSON.stringify(habits));
+      localStorage.setItem("habitTracker", JSON.stringify(habits));
     }
 
     function loadFromStorage() {
-      const data = localStorage.getItem("habitTrackerData");
-      if (data) {
-        habits = JSON.parse(data);
+      const savedHabits = localStorage.getItem("habitTracker");
+      if (savedHabits) {
+        habits = JSON.parse(savedHabits);
         renderHabits();
       }
     }
 
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (Array.isArray(data)) {
-            habits = data;
+      if (file && file.name.endsWith(".htbynoah")) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          try {
+            habits = JSON.parse(event.target.result);
             renderHabits();
-            saveToStorage();
+          } catch (error) {
+            alert("Error loading the file!");
           }
-        } catch (err) {
-          alert("Invalid file.");
-        }
-      };
-      reader.readAsText(file);
+        };
+        reader.readAsText(file);
+      }
     });
 
-    loadFromStorage();
+    window.onload = loadFromStorage;
   </script>
 </body>
 </html>
