@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -13,7 +13,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(to bottom right, #a2d4f4, #084f9c);
+      background: linear-gradient(to bottom right, #0ce3ff, #000d67);
       color: #fff;
       min-height: 100vh;
       display: flex;
@@ -81,7 +81,7 @@
     }
 
     .habit.completed {
-      background-color: #4caf50; /* Green color for completed habit */
+      background-color: #4caf50;
       color: white;
       transition: background-color 0.5s ease;
     }
@@ -89,7 +89,7 @@
     .habit.completed .habit-content span,
     .habit.completed .habit-timestamp,
     .habit.completed .habit-description {
-      color: white; /* Make text white when completed */
+      color: white;
     }
 
     .habit-content {
@@ -155,7 +155,6 @@
       }
     }
 
-    /* Modal styles */
     .modal {
       position: fixed;
       top: 0;
@@ -224,7 +223,7 @@
   <h1>🌱 打卡器</h1>
   <div id="habit-container">
     <form id="add-form">
-      <input type="text" id="habit-input" placeholder="输入打卡项名称" />
+      <input type="text" id="habit-input" placeholder="输入打卡名称" />
       <button type="submit">添加打卡项</button>
     </form>
     <div id="habit-list"></div>
@@ -235,16 +234,15 @@
     </div>
   </div>
 
-  <!-- Modal for editing -->
   <div class="modal" id="editModal">
     <div class="modal-box">
-      <h3>编辑打卡项</h3>
-      <textarea id="editDescription" rows="4" placeholder="输入要添加/更换的注释"></textarea>
+      <h3>编辑习惯</h3>
+      <textarea id="editDescription" rows="4" placeholder="编辑描述"></textarea>
       <input type="color" id="borderColor" value="#000000">
       <input type="number" id="borderWidth" value="2" min="1" max="10">
       <select id="borderStyle">
-        <option value="solid">虚线</option>
-        <option value="dashed">实线</option>
+        <option value="solid">实线</option>
+        <option value="dashed">虚线</option>
         <option value="dotted">点线</option>
       </select>
       <div class="modal-actions">
@@ -276,7 +274,7 @@
       if (name !== "") {
         const timestamp = new Date();
         const formattedTime = `${timestamp.getFullYear()}/${String(timestamp.getMonth()+1).padStart(2, '0')}/${String(timestamp.getDate()).padStart(2, '0')} ${String(timestamp.getHours()).padStart(2, '0')}:${String(timestamp.getMinutes()).padStart(2, '0')}`;
-        habits.push({ name, completed: false, description: "", time: formattedTime, borderColor: "#000000", borderWidth: 2, borderStyle: "solid" });
+        habits.push({ name, completed: false, description: "", time: formattedTime, borderColor: "#09abf1", borderWidth: 2, borderStyle: "solid" });
         habitInput.value = "";
         renderHabits();
         saveToStorage();
@@ -289,15 +287,36 @@
         const div = document.createElement("div");
         div.className = "habit" + (habit.completed ? " completed" : "");
         div.style.border = `${habit.borderWidth}px ${habit.borderStyle} ${habit.borderColor}`;
+
+        let descriptionContent = "";
+
+        if (habit.description.startsWith("!img:")) {
+          const imageUrl = habit.description.substring(5).trim();
+          descriptionContent = `<img src="${imageUrl}" alt="Habit Image" style="max-width: 100%; height: auto; border-radius: 10px; margin-top: 10px;" />`;
+        } else if (habit.description.startsWith("!vid:")) {
+          const videoUrl = habit.description.substring(5).trim();
+          descriptionContent = `<video controls style="max-width: 100%; border-radius: 10px; margin-top: 10px;">
+                                  <source src="${videoUrl}" type="video/mp4">
+                                  你的浏览器不支持 video 标签。
+                                </video>`;
+        } else if (habit.description.startsWith("!color:")) {
+          const text = habit.description.substring(7).trim();
+          const colorName = text.split(" ")[0];
+          const restText = text.substring(colorName.length).trim();
+          descriptionContent = `<div class="habit-description" style="color: ${colorName};">${restText}</div>`;
+        } else if (habit.description) {
+          descriptionContent = `<div class="habit-description">${habit.description}</div>`;
+        }
+
         div.innerHTML = `
           <div class="habit-content">
             <div>
               <span>${habit.name}</span>
               <div class="habit-timestamp">${habit.time}</div>
-              ${habit.description ? `<div class="habit-description">${habit.description}</div>` : ""}
+              ${descriptionContent}
             </div>
             <div class="habit-buttons">
-              <button onclick="toggleHabit(${index})">${habit.completed ? "取消打卡" : "完成打卡"}</button>
+              <button onclick="toggleHabit(${index})">${habit.completed ? "取消标记" : "完成"}</button>
               <button onclick="openEditModal(${index})">编辑</button>
             </div>
           </div>
@@ -324,73 +343,55 @@
 
     function closeModal() {
       editModal.classList.remove("show");
+      currentEditIndex = null;
     }
 
     function saveDescription() {
-      if (currentEditIndex !== null) {
-        const habit = habits[currentEditIndex];
-        habit.description = editDescription.value.trim();
-        habit.borderColor = borderColor.value;
-        habit.borderWidth = parseInt(borderWidth.value);
-        habit.borderStyle = borderStyle.value;
-        renderHabits();
-        closeModal();
-        saveToStorage();
-      }
+      habits[currentEditIndex].description = editDescription.value;
+      habits[currentEditIndex].borderColor = borderColor.value;
+      habits[currentEditIndex].borderWidth = parseInt(borderWidth.value);
+      habits[currentEditIndex].borderStyle = borderStyle.value;
+      renderHabits();
+      saveToStorage();
+      closeModal();
     }
 
     function deleteHabit(index) {
       habits.splice(index, 1);
       renderHabits();
-      closeModal();
       saveToStorage();
-    }
-
-    function saveHabits() {
-      const timestamp = new Date();
-      const dateStr = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}`;
-      const timeStr = `${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
-      const fileName = `habitTracker_${dateStr}_${timeStr}.htbynoah`;
-
-      const blob = new Blob([JSON.stringify(habits)], { type: "application/octet-stream" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName;
-      a.click();
+      closeModal();
     }
 
     function saveToStorage() {
-      localStorage.setItem("habitTrackerData", JSON.stringify(habits));
+      localStorage.setItem("habitTracker", JSON.stringify(habits));
     }
 
     function loadFromStorage() {
-      const data = localStorage.getItem("habitTrackerData");
-      if (data) {
-        habits = JSON.parse(data);
+      const savedHabits = localStorage.getItem("habitTracker");
+      if (savedHabits) {
+        habits = JSON.parse(savedHabits);
         renderHabits();
       }
     }
 
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (Array.isArray(data)) {
-            habits = data;
+      if (file && file.name.endsWith(".htbynoah")) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          try {
+            habits = JSON.parse(event.target.result);
             renderHabits();
-            saveToStorage();
+          } catch (error) {
+            alert("加载文件时出错!");
           }
-        } catch (err) {
-          alert("错误文件类型或格式");
-        }
-      };
-      reader.readAsText(file);
+        };
+        reader.readAsText(file);
+      }
     });
 
-    loadFromStorage();
+    window.onload = loadFromStorage;
   </script>
 </body>
 </html>
